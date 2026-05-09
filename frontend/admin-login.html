@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Admin Login</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link href="assets/css/styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-white border-bottom">
+      <div class="container">
+        <a class="navbar-brand" href="index.html">Online Exam</a>
+      </div>
+    </nav>
+
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-5">
+          <div class="card p-4">
+            <h4 class="mb-3">Admin Login</h4>
+
+            <div id="errorBox" class="alert alert-danger d-none"></div>
+
+            <form id="loginForm">
+              <div class="mb-3">
+                <label class="form-label">Email</label>
+                <input id="email" type="email" class="form-control" placeholder="admin@exam.com" required />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Password</label>
+                <input id="password" type="password" class="form-control" placeholder="admin123" required />
+              </div>
+              <button class="btn btn-primary w-100" type="submit">Login</button>
+            </form>
+
+            <p class="text-muted small mt-3 mb-0">
+              Demo admin: <code>admin@exam.com</code> / <code>admin123</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/storage.js"></script>
+    <script>
+      const form = document.getElementById("loginForm");
+      const errorBox = document.getElementById("errorBox");
+
+      function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.classList.remove("d-none");
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errorBox.classList.add("d-none");
+
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+
+        try {
+          const data = await window.Api.apiPost("/api/auth/admin/login", { email, password });
+          window.StorageUtil.setJson("admin", data.admin);
+          window.location.href = "admin-dashboard.html";
+        } catch (err) {
+          showError(err.message);
+        }
+      });
+    </script>
+  </body>
+</html>
+

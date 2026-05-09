@@ -1,0 +1,10 @@
+/* Keep styling minimal; Bootstrap handles most UI */
+body {
+  background: #f6f7fb;
+}
+
+.card {
+  border: 0;
+  box-shadow: 0 8px 24px rgba(18, 38, 63, 0.08);
+}
+

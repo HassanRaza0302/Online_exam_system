@@ -1,0 +1,29 @@
+{
+  "name": "online-exam-system-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Backend for Online Examination System (DBMS project).",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "db:apply": "node src/scripts/apply-sql.js",
+    "db:approval": "node src/scripts/apply-approval-sql.js",
+    "db:auth": "node src/scripts/apply-auth-sql.js",
+    "db:hash-passwords": "node src/scripts/hash-existing-passwords.js",
+    "stress:exam": "node src/scripts/stress-concurrent-exams.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express-session": "^1.18.2",
+    "express": "^4.21.2",
+    "mssql": "^11.0.1",
+    "msnodesqlv8": "^4.2.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}
+

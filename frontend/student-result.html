@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Result</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link href="assets/css/styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg bg-white border-bottom">
+      <div class="container">
+        <a class="navbar-brand" href="student-exams.html">Online Exam</a>
+        <div class="ms-auto d-flex align-items-center gap-2">
+          <span id="studentName" class="text-muted small"></span>
+          <button id="logoutBtn" class="btn btn-sm btn-outline-secondary">Logout</button>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container py-5">
+      <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+          <div class="card p-4">
+            <h4 class="mb-3">Exam Result</h4>
+            <div id="errorBox" class="alert alert-danger d-none"></div>
+
+            <div id="resultBox" class="d-none">
+              <div class="row g-3">
+                <div class="col-6">
+                  <div class="text-muted small">Score</div>
+                  <div id="score" class="fs-4 fw-semibold"></div>
+                </div>
+                <div class="col-6">
+                  <div class="text-muted small">Percentage</div>
+                  <div id="percentage" class="fs-4 fw-semibold"></div>
+                </div>
+                <div class="col-12">
+                  <div class="text-muted small">Rank</div>
+                  <div id="rank" class="fs-4 fw-semibold"></div>
+                </div>
+              </div>
+
+              <div class="d-flex gap-2 mt-4">
+                <a class="btn btn-primary" href="student-exams.html">Back to Exams</a>
+              </div>
+            </div>
+
+            <div id="loading" class="text-muted">Loading result...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="assets/js/config.js"></script>
+    <script src="assets/js/api.js"></script>
+    <script src="assets/js/storage.js"></script>
+    <script>
+      const student = window.StorageUtil.getJson("student");
+      if (!student) window.location.href = "student-login.html";
+
+      document.getElementById("studentName").textContent = student.full_name;
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        window.Api.apiPost("/api/auth/student/logout", {}).finally(() => {
+          window.StorageUtil.clearKey("student");
+          window.location.href = "index.html";
+        });
+      });
+
+      const params = new URLSearchParams(window.location.search);
+      const attemptId = Number(params.get("attempt_id"));
+
+      const errorBox = document.getElementById("errorBox");
+      const loading = document.getElementById("loading");
+      const resultBox = document.getElementById("resultBox");
+
+      function showError(msg) {
+        errorBox.textContent = msg;
+        errorBox.classList.remove("d-none");
+      }
+
+      function renderResult(r) {
+        document.getElementById("score").textContent = r.score;
+        document.getElementById("percentage").textContent = `${r.percentage}%`;
+        document.getElementById("rank").textContent = r.student_rank ?? "N/A";
+        loading.classList.add("d-none");
+        resultBox.classList.remove("d-none");
+      }
+
+      async function loadResult() {
+        const cached = window.StorageUtil.getJson("lastResult");
+        if (cached && (!attemptId || cached.attempt_id === attemptId)) {
+          renderResult(cached);
+          return;
+        }
+
+        if (!Number.isInteger(attemptId)) {
+          loading.classList.add("d-none");
+          showError("Missing attempt_id");
+          return;
+        }
+
+        try {
+          // If user refreshed the page, resubmit will return alreadySubmitted + result
+          const data = await window.Api.apiPost(`/api/attempts/${attemptId}/submit`, {});
+          if (!data.result) throw new Error("Result not found for this attempt");
+          window.StorageUtil.setJson("lastResult", data.result);
+          renderResult(data.result);
+        } catch (err) {
+          loading.classList.add("d-none");
+          showError(err.message);
+        }
+      }
+
+      loadResult();
+    </script>
+  </body>
+</html>
+
