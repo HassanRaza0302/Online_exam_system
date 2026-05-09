@@ -3,7 +3,6 @@ const { getPool } = require("../services/db");
 
 const router = express.Router();
 
-// Basic server health
 router.get("/health", (req, res) => {
   res.json({
     status: "ok",
@@ -12,7 +11,6 @@ router.get("/health", (req, res) => {
   });
 });
 
-// Database health (tests a simple SELECT 1)
 router.get("/db/health", async (req, res) => {
   try {
     const pool = await getPool();

@@ -70,7 +70,10 @@
             <div class="text-muted small mb-3">${exam.subject_name || ""}</div>
             <div class="small mb-1"><strong>Duration:</strong> ${exam.duration_minutes} minutes</div>
             <div class="small mb-3"><strong>Total Marks:</strong> ${exam.total_marks ?? ""}</div>
-            <a class="btn btn-primary mt-auto" href="student-exam.html?exam_id=${exam.exam_id}">Start</a>
+            <div class="d-grid gap-2 mt-auto">
+              <a class="btn btn-primary" href="student-exam.html?exam_id=${exam.exam_id}">Start</a>
+              <a class="btn btn-outline-secondary" href="student-ranking.html?exam_id=${exam.exam_id}">Ranking</a>
+            </div>
           </div>
         `;
         return col;

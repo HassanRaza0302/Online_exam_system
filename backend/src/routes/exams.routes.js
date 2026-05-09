@@ -4,7 +4,6 @@ const { requireStudent } = require("../middleware/auth");
 
 const router = express.Router();
 
-// List exams (basic)
 router.get("/api/exams", async (req, res) => {
   try {
     const pool = await getPool();
@@ -19,7 +18,6 @@ router.get("/api/exams", async (req, res) => {
   }
 });
 
-// Get one exam + questions (for starting exam UI)
 router.get("/api/exams/:examId", async (req, res) => {
   const examId = Number(req.params.examId);
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "Invalid examId" });
@@ -53,19 +51,14 @@ router.get("/api/exams/:examId", async (req, res) => {
   }
 });
 
-// Start exam attempt
-// Body: { "student_id": 1 }
 router.post("/api/exams/:examId/start", requireStudent, async (req, res) => {
   const examId = Number(req.params.examId);
   const studentId = req.session.student.student_id;
 
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "Invalid examId" });
-  // studentId comes from session
-
   try {
     const pool = await getPool();
 
-    // Ensure student is still approved in DB
     const studentCheck = await pool
       .request()
       .input("studentId", studentId)
@@ -79,7 +72,6 @@ router.post("/api/exams/:examId/start", requireStudent, async (req, res) => {
       return res.status(403).json({ message: `Account is ${studentCheck.recordset[0].status}` });
     }
 
-    // SINGLE ATTEMPT restriction: if any attempt exists, block re-entry.
     const existing = await pool
       .request()
       .input("studentId", studentId)
@@ -100,7 +92,6 @@ router.post("/api/exams/:examId/start", requireStudent, async (req, res) => {
       });
     }
 
-    // Ensure exam exists and fetch duration for timer metadata
     const exam = await pool.request().input("examId", examId).query(`
       SELECT TOP 1 exam_id, duration_minutes
       FROM Exams
@@ -145,9 +136,6 @@ router.post("/api/exams/:examId/start", requireStudent, async (req, res) => {
   }
 });
 
-// Alias required by prompt:
-// POST /api/start-exam
-// Body: { exam_id }
 router.post("/api/start-exam", requireStudent, async (req, res, next) => {
   const examId = Number(req.body.exam_id);
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "exam_id is required" });

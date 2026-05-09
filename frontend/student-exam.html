@@ -93,12 +93,15 @@
         errorBox.classList.add("d-none");
         try {
           // student_id is taken from session on backend
-          const data = await window.Api.apiPost(`/api/exams/${examId}/start`, {});
+          const data = await window.Api.apiPost(`/api/start-exam`, { exam_id: examId });
           window.StorageUtil.setJson("currentAttempt", {
             attempt_id: data.attempt_id,
-            exam_id: examId
+            exam_id: examId,
+            expires_at: data.expires_at
           });
-          window.location.href = `student-attempt.html?attempt_id=${data.attempt_id}&exam_id=${examId}`;
+          window.location.href = `student-attempt.html?attempt_id=${data.attempt_id}&exam_id=${examId}&expires_at=${encodeURIComponent(
+            data.expires_at
+          )}`;
         } catch (err) {
           startBtn.disabled = false;
           showError(err.message);

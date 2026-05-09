@@ -1,5 +1,5 @@
 async function apiFetch(path, options) {
-  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || "http://localhost:3001";
+  const base = (window.APP_CONFIG && window.APP_CONFIG.API_BASE_URL) || "http://localhost:3011";
   const url = base + path;
 
   const res = await fetch(url, {

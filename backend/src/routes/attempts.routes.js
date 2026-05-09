@@ -48,9 +48,36 @@ async function autoSubmitIfExpired(pool, attemptState) {
   return { expired: true, autoSubmitted: true };
 }
 
-// Save/Update one answer
-// POST /api/attempts/:attemptId/answer
-// Body: { "question_id": 10, "selected_option": "A" }
+router.get("/api/attempts/:attemptId/timer", requireStudent, async (req, res) => {
+  const attemptId = Number(req.params.attemptId);
+  if (!Number.isInteger(attemptId)) return res.status(400).json({ message: "Invalid attemptId" });
+
+  try {
+    const pool = await getPool();
+    const attempt = await fetchAttemptState(pool, attemptId);
+    if (!attempt) return res.status(404).json({ message: "Attempt not found" });
+    if (attempt.student_id !== req.session.student.student_id) {
+      return res.status(403).json({ message: "This attempt does not belong to you" });
+    }
+
+    const timerState = await autoSubmitIfExpired(pool, attempt);
+    const updated = await fetchAttemptState(pool, attemptId);
+    const totalSeconds = updated.duration_minutes * 60;
+    const remainingSeconds = Math.max(0, totalSeconds - updated.elapsed_seconds);
+
+    return res.json({
+      attempt_id: updated.attempt_id,
+      status: updated.status,
+      duration_minutes: updated.duration_minutes,
+      elapsed_seconds: updated.elapsed_seconds,
+      remaining_seconds: remainingSeconds,
+      expired: timerState.expired || remainingSeconds <= 0
+    });
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+});
+
 router.post("/api/attempts/:attemptId/answer", requireStudent, async (req, res) => {
   const attemptId = Number(req.params.attemptId);
   const questionId = Number(req.body.question_id);
@@ -65,7 +92,6 @@ router.post("/api/attempts/:attemptId/answer", requireStudent, async (req, res) 
   try {
     const pool = await getPool();
 
-    // Timer enforcement from backend
     const attempt = await fetchAttemptState(pool, attemptId);
     if (!attempt) return res.status(404).json({ message: "Attempt not found" });
     if (attempt.student_id !== req.session.student.student_id) {
@@ -81,7 +107,6 @@ router.post("/api/attempts/:attemptId/answer", requireStudent, async (req, res) 
       return res.status(400).json({ message: "Attempt already submitted" });
     }
 
-    // UPSERT pattern (SQL Server 2014 friendly): update first, if nothing updated then insert
     const update = await pool
       .request()
       .input("attemptId", attemptId)
@@ -115,8 +140,6 @@ router.post("/api/attempts/:attemptId/answer", requireStudent, async (req, res) 
   }
 });
 
-// Submit exam attempt (transaction happens inside stored procedure)
-// POST /api/attempts/:attemptId/submit
 router.post("/api/attempts/:attemptId/submit", requireStudent, async (req, res) => {
   const attemptId = Number(req.params.attemptId);
   if (!Number.isInteger(attemptId)) return res.status(400).json({ message: "Invalid attemptId" });
@@ -136,7 +159,6 @@ router.post("/api/attempts/:attemptId/submit", requireStudent, async (req, res) 
 
     const { exam_id: examId, status } = attemptInfo;
     if (status === "SUBMITTED") {
-      // idempotent-ish: just return existing result
       const result = await pool.request().input("attemptId", attemptId).query(`
         SELECT TOP 1 result_id, attempt_id, student_id, exam_id, score, percentage, student_rank, submitted_at
         FROM Results
@@ -150,8 +172,6 @@ router.post("/api/attempts/:attemptId/submit", requireStudent, async (req, res) 
       });
     }
 
-    // Call your stored procedures
-    // Note: we don't need BEGIN TRAN here because sp_SubmitExam already does it.
     await pool.request().input("attempt_id", attemptId).execute("sp_SubmitExam");
     await pool.request().input("exam_id", examId).execute("sp_GenerateRankings");
 
@@ -166,7 +186,6 @@ router.post("/api/attempts/:attemptId/submit", requireStudent, async (req, res) 
         VALUES (@student_id, @exam_id, @event_type, @event_description)
       `);
 
-    // Return final result
     const final = await pool.request().input("attemptId", attemptId).query(`
       SELECT TOP 1 result_id, attempt_id, student_id, exam_id, score, percentage, student_rank, submitted_at
       FROM Results
@@ -183,9 +202,6 @@ router.post("/api/attempts/:attemptId/submit", requireStudent, async (req, res) 
   }
 });
 
-// Alias required by prompt:
-// POST /api/submit-answer
-// Body: { attempt_id, question_id, selected_option }
 router.post("/api/submit-answer", requireStudent, async (req, res, next) => {
   const attemptId = Number(req.body.attempt_id);
   if (!Number.isInteger(attemptId)) return res.status(400).json({ message: "attempt_id is required" });
@@ -194,9 +210,6 @@ router.post("/api/submit-answer", requireStudent, async (req, res, next) => {
   return router.handle(req, res, next);
 });
 
-// Alias required by prompt:
-// POST /api/submit-exam
-// Body: { attempt_id }
 router.post("/api/submit-exam", requireStudent, async (req, res, next) => {
   const attemptId = Number(req.body.attempt_id);
   if (!Number.isInteger(attemptId)) return res.status(400).json({ message: "attempt_id is required" });
@@ -205,8 +218,6 @@ router.post("/api/submit-exam", requireStudent, async (req, res, next) => {
   return router.handle(req, res, next);
 });
 
-// Required by prompt:
-// GET /api/result?attempt_id=...
 router.get("/api/result", requireStudent, async (req, res) => {
   const attemptId = Number(req.query.attempt_id);
   if (!Number.isInteger(attemptId)) return res.status(400).json({ message: "attempt_id is required" });
@@ -235,8 +246,6 @@ router.get("/api/result", requireStudent, async (req, res) => {
   }
 });
 
-// Required by prompt:
-// GET /api/ranking?exam_id=...
 router.get("/api/ranking", requireStudent, async (req, res) => {
   const examId = Number(req.query.exam_id);
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "exam_id is required" });

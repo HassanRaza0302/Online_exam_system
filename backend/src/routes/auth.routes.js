@@ -1,10 +1,10 @@
 const express = require("express");
 const { getPool } = require("../services/db");
 const bcrypt = require("bcryptjs");
+const { requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Get current session user (if any)
 router.get("/api/auth/me", (req, res) => {
   res.json({
     student: req.session?.student || null,
@@ -12,8 +12,6 @@ router.get("/api/auth/me", (req, res) => {
   });
 });
 
-// Register student (starts as PENDING)
-// POST /api/register-student
 router.post("/api/register-student", async (req, res) => {
   const fullName = String(req.body.full_name || "").trim();
   const email = String(req.body.email || "").trim();
@@ -58,9 +56,7 @@ router.post("/api/register-student", async (req, res) => {
   }
 });
 
-// Register admin (kept as APPROVED by default for now)
-// POST /api/register-admin
-router.post("/api/register-admin", async (req, res) => {
+router.post("/api/register-admin", requireAdmin, async (req, res) => {
   const fullName = String(req.body.full_name || "").trim();
   const email = String(req.body.email || "").trim();
   const password = String(req.body.password || "");
@@ -92,9 +88,6 @@ router.post("/api/register-admin", async (req, res) => {
   }
 });
 
-// Student login
-// POST /api/auth/student/login
-// Body: { "email": "...", "password": "..." }
 router.post("/api/auth/student/login", async (req, res) => {
   const email = String(req.body.email || "").trim();
   const password = String(req.body.password || "");
@@ -104,7 +97,6 @@ router.post("/api/auth/student/login", async (req, res) => {
   try {
     const pool = await getPool();
 
-    // Step 1: find student by email
     const result = await pool
       .request()
       .input("email", email)
@@ -116,7 +108,6 @@ router.post("/api/auth/student/login", async (req, res) => {
 
     if (!result.recordset.length) return res.status(401).json({ message: "Invalid email or password" });
 
-    // Step 2: compare plain password with bcrypt hash
     const row = result.recordset[0];
     const isValid = await bcrypt.compare(password, row.password);
     if (!isValid) return res.status(401).json({ message: "Invalid email or password" });
@@ -124,7 +115,6 @@ router.post("/api/auth/student/login", async (req, res) => {
       return res.status(403).json({ message: `Account is ${row.status}. Wait for admin approval.` });
     }
 
-    // Step 3: call DBMS stored procedure for login selection (DBMS-focused requirement)
     const loginResult = await pool
       .request()
       .input("email", email)
@@ -135,9 +125,7 @@ router.post("/api/auth/student/login", async (req, res) => {
 
     const student = loginResult.recordset[0];
 
-    // Set session
     req.session.student = student;
-    // If previously logged in as admin, clear it
     req.session.admin = null;
 
     await pool
@@ -154,8 +142,6 @@ router.post("/api/auth/student/login", async (req, res) => {
   }
 });
 
-// Admin login
-// POST /api/auth/admin/login
 router.post("/api/auth/admin/login", async (req, res) => {
   const email = String(req.body.email || "").trim();
   const password = String(req.body.password || "");
@@ -165,7 +151,6 @@ router.post("/api/auth/admin/login", async (req, res) => {
   try {
     const pool = await getPool();
 
-    // Step 1: find admin by email
     const result = await pool
       .request()
       .input("email", email)
@@ -177,7 +162,6 @@ router.post("/api/auth/admin/login", async (req, res) => {
 
     if (!result.recordset.length) return res.status(401).json({ message: "Invalid email or password" });
 
-    // Step 2: compare plain password with bcrypt hash
     const row = result.recordset[0];
     const isValid = await bcrypt.compare(password, row.password);
     if (!isValid) return res.status(401).json({ message: "Invalid email or password" });
@@ -185,7 +169,6 @@ router.post("/api/auth/admin/login", async (req, res) => {
       return res.status(403).json({ message: `Account is ${row.status}.` });
     }
 
-    // Step 3: call DBMS stored procedure
     const loginResult = await pool
       .request()
       .input("email", email)
@@ -213,9 +196,6 @@ router.post("/api/auth/admin/login", async (req, res) => {
   }
 });
 
-// Generic login endpoint required by prompt
-// POST /api/login
-// Body: { email, password, role: "student" | "admin" }
 router.post("/api/login", async (req, res) => {
   const role = String(req.body.role || "").toLowerCase();
   if (role === "student") {

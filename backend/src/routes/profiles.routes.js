@@ -4,8 +4,6 @@ const { requireStudent, requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Student profile summary
-// GET /api/profile/student
 router.get("/api/profile/student", requireStudent, async (req, res) => {
   const studentId = req.session.student.student_id;
 
@@ -44,8 +42,6 @@ router.get("/api/profile/student", requireStudent, async (req, res) => {
   }
 });
 
-// Admin profile summary + lightweight analytics
-// GET /api/profile/admin
 router.get("/api/profile/admin", requireAdmin, async (req, res) => {
   const adminId = req.session.admin.admin_id;
 

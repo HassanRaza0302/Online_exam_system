@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Student Login</title>
+    <title>Register</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -19,28 +19,31 @@
 
     <div class="container py-5">
       <div class="row justify-content-center">
-        <div class="col-md-8 col-lg-5">
+        <div class="col-md-8 col-lg-6">
           <div class="card p-4">
-            <h4 class="mb-3">Student Login</h4>
-
+            <h4 class="mb-3">Create Account</h4>
             <div id="errorBox" class="alert alert-danger d-none"></div>
+            <div id="successBox" class="alert alert-success d-none"></div>
 
-            <form id="loginForm">
+            <form id="registerForm">
+              <div class="mb-3">
+                <label class="form-label">Full Name</label>
+                <input id="fullName" class="form-control" required />
+              </div>
               <div class="mb-3">
                 <label class="form-label">Email</label>
-                <input id="email" type="email" class="form-control" placeholder="ali@gmail.com" required />
+                <input id="email" type="email" class="form-control" required />
               </div>
               <div class="mb-3">
                 <label class="form-label">Password</label>
-                <input id="password" type="password" class="form-control" placeholder="123" required />
+                <input id="password" type="password" class="form-control" required />
               </div>
-              <button class="btn btn-primary w-100" type="submit">Login</button>
+              <button class="btn btn-primary w-100" type="submit">Register</button>
             </form>
 
-            <p class="text-muted small mt-3 mb-0">
-              Demo user: <code>ali@gmail.com</code> / <code>123</code>
+            <p class="small text-muted mt-3 mb-0">
+              Student accounts stay pending until admin approval. Admin accounts can only be created by logged-in admins.
             </p>
-            <a class="small d-inline-block mt-2" href="register.html">New here? Register</a>
           </div>
         </div>
       </div>
@@ -48,27 +51,33 @@
 
     <script src="assets/js/config.js"></script>
     <script src="assets/js/api.js"></script>
-    <script src="assets/js/storage.js"></script>
     <script>
-      const form = document.getElementById("loginForm");
+      const form = document.getElementById("registerForm");
       const errorBox = document.getElementById("errorBox");
+      const successBox = document.getElementById("successBox");
 
       function showError(msg) {
         errorBox.textContent = msg;
         errorBox.classList.remove("d-none");
       }
+      function showSuccess(msg) {
+        successBox.textContent = msg;
+        successBox.classList.remove("d-none");
+      }
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
         errorBox.classList.add("d-none");
+        successBox.classList.add("d-none");
 
-        const email = document.getElementById("email").value;
+        const full_name = document.getElementById("fullName").value.trim();
+        const email = document.getElementById("email").value.trim();
         const password = document.getElementById("password").value;
 
         try {
-          const data = await window.Api.apiPost("/api/auth/student/login", { email, password });
-          window.StorageUtil.setJson("student", data.student);
-          window.location.href = "student-exams.html";
+          const data = await window.Api.apiPost("/api/register-student", { full_name, email, password });
+          showSuccess(data.message || "Registered successfully.");
+          form.reset();
         } catch (err) {
           showError(err.message);
         }

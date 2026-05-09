@@ -15,7 +15,6 @@ function getSqlConfig() {
     connectionTimeout: 5000,
     requestTimeout: 30000,
     options: {
-      // Common for local SQL Server dev.
       encrypt: false,
       trustServerCertificate: true
     },
@@ -43,7 +42,6 @@ function uniqueNonEmpty(values) {
 function buildCandidateConfigs() {
   const base = getSqlConfig();
 
-  // If student didn't set these, provide sensible defaults.
   const candidateServers = uniqueNonEmpty([
     base.server,
     "localhost",
@@ -57,7 +55,6 @@ function buildCandidateConfigs() {
   for (const server of candidateServers) {
     const isNamedInstance = server.includes("\\");
     if (isNamedInstance) {
-      // Named instances usually rely on SQL Browser; specifying a port can break it.
       configs.push({ ...base, server, port: undefined });
     } else {
       for (const port of candidatePorts) {
@@ -70,8 +67,6 @@ function buildCandidateConfigs() {
 }
 
 function buildOdbcFallbackConfigs() {
-  // ODBC can connect to local named instances without SQL Browser in some setups.
-  // This is a pragmatic fallback for student machines.
   const db = process.env.DB_DATABASE;
   const user = process.env.DB_USER;
   const password = process.env.DB_PASSWORD;
@@ -87,11 +82,9 @@ function buildOdbcFallbackConfigs() {
 
   const configs = [];
   for (const s of servers) {
-    // Try newer driver name first; if not installed, the connect attempt will fail and we try next.
     const connStrSqlAuth1 = `Driver={ODBC Driver 17 for SQL Server};Server=${s};Database=${db};Uid=${user};Pwd=${password};TrustServerCertificate=Yes;`;
     const connStrSqlAuth2 = `Driver={SQL Server Native Client 11.0};Server=${s};Database=${db};Uid=${user};Pwd=${password};TrustServerCertificate=Yes;`;
 
-    // Integrated Security (Windows Authentication) - often works even when TCP is disabled
     const connStrWinAuth1 = `Driver={ODBC Driver 17 for SQL Server};Server=${s};Database=${db};Trusted_Connection=Yes;TrustServerCertificate=Yes;`;
     const connStrWinAuth2 = `Driver={SQL Server Native Client 11.0};Server=${s};Database=${db};Trusted_Connection=Yes;TrustServerCertificate=Yes;`;
 
@@ -132,12 +125,10 @@ async function getPool() {
   if (!poolPromise) {
     const config = getSqlConfig();
 
-    // Basic config validation to fail fast (helpful for beginners)
     const missing = [];
     if (!config.database) missing.push("DB_DATABASE");
     if (!config.user) missing.push("DB_USER");
     if (!config.password) missing.push("DB_PASSWORD");
-    // DB_SERVER can be auto-detected, so don't hard-fail when it's missing.
     if (missing.length) {
       throw new Error(`Missing environment variables: ${missing.join(", ")}`);
     }
@@ -159,11 +150,9 @@ async function getPool() {
           return pool;
         } catch (err) {
           lastErr = err;
-          // continue trying next candidate
         }
       }
 
-      // Fallback: ODBC driver (msnodesqlv8)
       try {
         const odbcCandidates = buildOdbcFallbackConfigs();
         for (const c of odbcCandidates) {
@@ -178,7 +167,6 @@ async function getPool() {
           }
         }
       } catch (err) {
-        // ignore; keep lastErr from connect attempts
       }
       throw lastErr || new Error("Failed to connect to SQL Server");
     })();

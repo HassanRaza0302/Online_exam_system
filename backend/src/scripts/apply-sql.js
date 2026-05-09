@@ -4,36 +4,6 @@ const fs = require("fs");
 const path = require("path");
 const { getPool, closeDb } = require("../services/db");
 
-function splitSqlBatches(scriptText) {
-  // SQL Server batch separator is "GO" on its own line (SSMS style).
-  // This is not T-SQL; we split it manually before sending batches.
-  return scriptText
-    .split(/\r?\n/)
-    .reduce(
-      (acc, line) => {
-        if (/^\s*GO\s*$/i.test(line)) {
-          acc.batches.push(acc.current.join("\n"));
-          acc.current = [];
-        } else {
-          acc.current.push(line);
-        }
-        return acc;
-      },
-      { batches: [], current: [] }
-    )
-    .batches.concat([/* last */])
-    .map((b, idx, all) => (idx === all.length - 1 ? null : b))
-    .filter((b) => typeof b === "string")
-    .concat(
-      (() => {
-        // push last current
-        const lines = scriptText.split(/\r?\n/);
-        // recompute last batch properly (simpler + safe)
-        return [];
-      })()
-    );
-}
-
 function splitSqlBatchesSafe(scriptText) {
   const lines = scriptText.split(/\r?\n/);
   const batches = [];
@@ -79,7 +49,6 @@ async function main() {
     }
     console.log("[db:apply] Done.");
   } finally {
-    // Keep Node process clean for scripts
     await closeDb();
   }
 }

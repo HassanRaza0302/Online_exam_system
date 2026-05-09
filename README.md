@@ -91,7 +91,7 @@ copy .env.example .env
 ```
 
 Required keys in `backend/.env`:
-- `PORT=3001`
+- `PORT=3011`
 - `SESSION_SECRET=dev_secret_change_me`
 - `DB_SERVER=localhost` (or `localhost\\SQLEXPRESS`)
 - `DB_PORT=1433`
@@ -120,9 +120,9 @@ npm run start
 ```
 
 Open:
-- Health: `http://localhost:3001/health`
-- DB health: `http://localhost:3001/db/health`
-- Frontend home: `http://localhost:3001/`
+- Health: `http://localhost:3011/health`
+- DB health: `http://localhost:3011/db/health`
+- Frontend home: `http://localhost:3011/`
 
 ## Main API Endpoints
 

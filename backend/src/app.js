@@ -13,7 +13,6 @@ const profilesRoutes = require("./routes/profiles.routes");
 function createApp() {
   const app = express();
 
-  // Beginner-friendly defaults
   app.use(
     cors({
       origin: true,
@@ -22,8 +21,6 @@ function createApp() {
   );
   app.use(express.json({ limit: "1mb" }));
 
-  // Sessions (beginner-friendly, in-memory store)
-  // NOTE: In production you should use a persistent session store.
   app.use(
     session({
       secret: process.env.SESSION_SECRET || "dev_secret_change_me",
@@ -36,11 +33,9 @@ function createApp() {
     })
   );
 
-  // Serve frontend (so you can open http://localhost:3001/ in browser)
   const frontendPath = path.join(__dirname, "../../frontend");
   app.use(express.static(frontendPath));
 
-  // Routes
   app.use(healthRoutes);
   app.use(authRoutes);
   app.use(adminRoutes);
@@ -48,7 +43,6 @@ function createApp() {
   app.use(examsRoutes);
   app.use(attemptsRoutes);
 
-  // 404
   app.use((req, res) => {
     res.status(404).json({ message: "Route not found" });
   });

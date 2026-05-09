@@ -29,7 +29,11 @@
           <h4 id="examTitle" class="mb-1">Exam</h4>
           <div id="examMeta" class="text-muted small"></div>
         </div>
-        <button id="submitBtn" class="btn btn-success">Submit</button>
+        <div class="text-end">
+          <div class="small text-muted">Time Left</div>
+          <div id="timerText" class="fw-semibold text-danger">--:--</div>
+          <button id="submitBtn" class="btn btn-success mt-2">Submit</button>
+        </div>
       </div>
 
       <div id="loading" class="text-muted">Loading questions...</div>
@@ -59,10 +63,58 @@
       const loading = document.getElementById("loading");
       const questionsEl = document.getElementById("questions");
       const submitBtn = document.getElementById("submitBtn");
+      const timerText = document.getElementById("timerText");
+      let timerInterval = null;
+      let timedOut = false;
+      let remainingSeconds = 0;
 
       function showError(msg) {
         errorBox.textContent = msg;
         errorBox.classList.remove("d-none");
+      }
+
+      async function autoSubmitOnTimeout() {
+        if (timedOut) return;
+        timedOut = true;
+        clearInterval(timerInterval);
+        timerText.textContent = "00:00";
+        submitBtn.disabled = true;
+        try {
+          const data = await window.Api.apiPost(`/api/submit-exam`, { attempt_id: attemptId });
+          window.StorageUtil.setJson("lastResult", data.result);
+          window.location.href = `student-result.html?attempt_id=${attemptId}`;
+        } catch (err) {
+          showError(err.message || "Time over. Please open result page.");
+        }
+      }
+
+      function renderTimer() {
+        const mm = String(Math.floor(remainingSeconds / 60)).padStart(2, "0");
+        const ss = String(remainingSeconds % 60).padStart(2, "0");
+        timerText.textContent = `${mm}:${ss}`;
+      }
+
+      function startCountdownFromSeconds(seconds) {
+        remainingSeconds = Math.max(0, Number(seconds) || 0);
+        renderTimer();
+        clearInterval(timerInterval);
+        timerInterval = setInterval(() => {
+          if (remainingSeconds <= 0) {
+            autoSubmitOnTimeout();
+            return;
+          }
+          remainingSeconds -= 1;
+          renderTimer();
+        }, 1000);
+      }
+
+      async function syncTimerFromServer() {
+        const data = await window.Api.apiGet(`/api/attempts/${attemptId}/timer`);
+        if (data.status === "SUBMITTED" || data.expired || data.remaining_seconds <= 0) {
+          autoSubmitOnTimeout();
+          return;
+        }
+        startCountdownFromSeconds(data.remaining_seconds);
       }
 
       function questionCard(q) {
@@ -136,7 +188,8 @@
 
             btn.disabled = true;
             try {
-              await window.Api.apiPost(`/api/attempts/${attemptId}/answer`, {
+              await window.Api.apiPost(`/api/submit-answer`, {
+                attempt_id: attemptId,
                 question_id: qid,
                 selected_option: selected
               });
@@ -158,7 +211,7 @@
         submitBtn.disabled = true;
 
         try {
-          const data = await window.Api.apiPost(`/api/attempts/${attemptId}/submit`, {});
+          const data = await window.Api.apiPost(`/api/submit-exam`, { attempt_id: attemptId });
           window.StorageUtil.setJson("lastResult", data.result);
           window.location.href = `student-result.html?attempt_id=${attemptId}`;
         } catch (err) {
@@ -168,6 +221,7 @@
       });
 
       loadExamAndQuestions();
+      syncTimerFromServer().catch((err) => showError(err.message));
     </script>
   </body>
 </html>

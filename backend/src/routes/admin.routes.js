@@ -4,14 +4,6 @@ const { requireAdmin } = require("../middleware/auth");
 
 const router = express.Router();
 
-// NOTE (beginner-friendly):
-// For now these admin APIs are NOT protected (no sessions/JWT yet).
-// We'll add proper auth middleware next.
-// UPDATE: now protected with session-based admin login.
-
-// Approve/reject student
-// POST /api/approve-student
-// Body: { student_id, status: "APPROVED" | "REJECTED" }
 router.post("/api/approve-student", requireAdmin, async (req, res) => {
   const studentId = Number(req.body.student_id);
   const status = String(req.body.status || "").toUpperCase().trim();
@@ -57,7 +49,6 @@ router.post("/api/approve-student", requireAdmin, async (req, res) => {
   }
 });
 
-// List pending students for admin dashboard
 router.get("/api/admin/students/pending", requireAdmin, async (req, res) => {
   try {
     const pool = await getPool();
@@ -73,9 +64,6 @@ router.get("/api/admin/students/pending", requireAdmin, async (req, res) => {
   }
 });
 
-// Create an exam
-// POST /api/admin/exams
-// Body: { exam_title, subject_name, duration_minutes, total_marks, created_by }
 router.post("/api/admin/exams", requireAdmin, async (req, res) => {
   const examTitle = String(req.body.exam_title || "").trim();
   const subjectName = String(req.body.subject_name || "").trim();
@@ -90,8 +78,6 @@ router.post("/api/admin/exams", requireAdmin, async (req, res) => {
   if (!Number.isInteger(totalMarks) || totalMarks <= 0) {
     return res.status(400).json({ message: "total_marks must be a positive integer" });
   }
-  // created_by comes from the admin session
-
   try {
     const pool = await getPool();
     const insert = await pool
@@ -115,15 +101,11 @@ router.post("/api/admin/exams", requireAdmin, async (req, res) => {
   }
 });
 
-// Alias required by prompt
 router.post("/api/create-exam", requireAdmin, async (req, res, next) => {
   req.url = "/api/admin/exams";
   return router.handle(req, res, next);
 });
 
-// Add a question to an exam
-// POST /api/admin/exams/:examId/questions
-// Body: { question_text, option_a, option_b, option_c, option_d, correct_option, marks }
 router.post("/api/admin/exams/:examId/questions", requireAdmin, async (req, res) => {
   const examId = Number(req.params.examId);
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "Invalid examId" });
@@ -150,7 +132,6 @@ router.post("/api/admin/exams/:examId/questions", requireAdmin, async (req, res)
   try {
     const pool = await getPool();
 
-    // Make sure exam exists
     const exam = await pool.request().input("examId", examId).query(`
       SELECT TOP 1 exam_id
       FROM Exams
@@ -184,7 +165,6 @@ router.post("/api/admin/exams/:examId/questions", requireAdmin, async (req, res)
   }
 });
 
-// Alias required by prompt
 router.post("/api/add-question", requireAdmin, async (req, res) => {
   const examId = Number(req.body.exam_id);
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "exam_id is required" });
@@ -193,8 +173,6 @@ router.post("/api/add-question", requireAdmin, async (req, res) => {
   return router.handle(req, res);
 });
 
-// View results + rankings for an exam
-// GET /api/admin/exams/:examId/results
 router.get("/api/admin/exams/:examId/results", requireAdmin, async (req, res) => {
   const examId = Number(req.params.examId);
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "Invalid examId" });
@@ -229,8 +207,6 @@ router.get("/api/admin/exams/:examId/results", requireAdmin, async (req, res) =>
   }
 });
 
-// Force ranking recalculation (optional helper)
-// POST /api/admin/exams/:examId/rankings/recalculate
 router.post("/api/admin/exams/:examId/rankings/recalculate", requireAdmin, async (req, res) => {
   const examId = Number(req.params.examId);
   if (!Number.isInteger(examId)) return res.status(400).json({ message: "Invalid examId" });
