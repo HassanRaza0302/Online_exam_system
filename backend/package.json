@@ -11,6 +11,8 @@
     "db:approval": "node src/scripts/apply-approval-sql.js",
     "db:auth": "node src/scripts/apply-auth-sql.js",
     "db:hash-passwords": "node src/scripts/hash-existing-passwords.js",
+    "db:features": "node src/scripts/apply-features-sql.js",
+    "db:clean": "node src/scripts/clean-database.js",
     "stress:exam": "node src/scripts/stress-concurrent-exams.js"
   },
   "dependencies": {

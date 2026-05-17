@@ -33,5 +33,17 @@ async function apiPost(path, body) {
   });
 }
 
-window.Api = { apiGet, apiPost };
+async function apiPut(path, body) {
+  return apiFetch(path, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body || {})
+  });
+}
+
+async function apiDelete(path) {
+  return apiFetch(path, { method: "DELETE" });
+}
+
+window.Api = { apiGet, apiPost, apiPut, apiDelete };
 

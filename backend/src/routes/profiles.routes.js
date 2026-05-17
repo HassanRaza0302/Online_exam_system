@@ -70,10 +70,17 @@ router.get("/api/profile/admin", requireAdmin, async (req, res) => {
       FROM Students
     `);
 
+    const studentsResult = await pool.request().query(`
+      SELECT student_id, full_name, email, status, created_at, approved_at
+      FROM Students
+      ORDER BY created_at DESC
+    `);
+
     res.json({
       admin: adminResult.recordset[0] || null,
       created_exams: examsResult.recordset,
-      student_stats: studentStats.recordset[0] || null
+      student_stats: studentStats.recordset[0] || null,
+      students: studentsResult.recordset
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

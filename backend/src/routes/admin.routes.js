@@ -220,5 +220,138 @@ router.post("/api/admin/exams/:examId/rankings/recalculate", requireAdmin, async
   }
 });
 
+router.get("/api/admin/exams", requireAdmin, async (req, res) => {
+  const adminId = req.session.admin.admin_id;
+
+  try {
+    const pool = await getPool();
+    const result = await pool.request().input("admin_id", adminId).query(`
+      SELECT
+        e.exam_id,
+        e.exam_title,
+        e.subject_name,
+        e.duration_minutes,
+        e.total_marks,
+        e.created_at,
+        (SELECT COUNT(*) FROM Questions q WHERE q.exam_id = e.exam_id) AS question_count,
+        (SELECT COUNT(*) FROM ExamAttempts ea WHERE ea.exam_id = e.exam_id) AS attempt_count
+      FROM Exams e
+      WHERE e.created_by = @admin_id
+      ORDER BY e.created_at DESC
+    `);
+    res.json({ exams: result.recordset });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.put("/api/admin/exams/:examId", requireAdmin, async (req, res) => {
+  const examId = Number(req.params.examId);
+  const adminId = req.session.admin.admin_id;
+  const examTitle = String(req.body.exam_title || "").trim();
+  const subjectName = String(req.body.subject_name || "").trim();
+  const durationMinutes = Number(req.body.duration_minutes);
+  const totalMarks = Number(req.body.total_marks);
+
+  if (!Number.isInteger(examId)) return res.status(400).json({ message: "Invalid examId" });
+  if (!examTitle) return res.status(400).json({ message: "exam_title is required" });
+  if (!Number.isInteger(durationMinutes) || durationMinutes <= 0) {
+    return res.status(400).json({ message: "duration_minutes must be a positive integer" });
+  }
+  if (!Number.isInteger(totalMarks) || totalMarks <= 0) {
+    return res.status(400).json({ message: "total_marks must be a positive integer" });
+  }
+
+  try {
+    const pool = await getPool();
+    const update = await pool
+      .request()
+      .input("exam_id", examId)
+      .input("admin_id", adminId)
+      .input("exam_title", examTitle)
+      .input("subject_name", subjectName || null)
+      .input("duration_minutes", durationMinutes)
+      .input("total_marks", totalMarks)
+      .query(`
+        UPDATE Exams
+        SET
+          exam_title = @exam_title,
+          subject_name = @subject_name,
+          duration_minutes = @duration_minutes,
+          total_marks = @total_marks
+        WHERE exam_id = @exam_id AND created_by = @admin_id;
+
+        SELECT @@ROWCOUNT AS rows_affected;
+      `);
+
+    if (!update.recordset[0].rows_affected) {
+      return res.status(404).json({ message: "Exam not found or not owned by you" });
+    }
+
+    res.json({ status: "ok" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.delete("/api/admin/exams/:examId", requireAdmin, async (req, res) => {
+  const examId = Number(req.params.examId);
+  const adminId = req.session.admin.admin_id;
+
+  if (!Number.isInteger(examId)) return res.status(400).json({ message: "Invalid examId" });
+
+  try {
+    const pool = await getPool();
+    await pool
+      .request()
+      .input("exam_id", examId)
+      .input("admin_id", adminId)
+      .execute("sp_DeleteExam");
+
+    res.json({ status: "ok", message: "Exam deleted" });
+  } catch (err) {
+    const msg = err.message || "Failed to delete exam";
+    if (msg.toLowerCase().includes("not found") || msg.toLowerCase().includes("only delete")) {
+      return res.status(404).json({ message: msg });
+    }
+    res.status(500).json({ message: msg });
+  }
+});
+
+router.get("/api/admin/students", requireAdmin, async (req, res) => {
+  try {
+    const pool = await getPool();
+    const result = await pool.request().query(`
+      SELECT
+        student_id,
+        full_name,
+        email,
+        status,
+        created_at,
+        approved_at
+      FROM Students
+      ORDER BY created_at DESC
+    `);
+    res.json({ students: result.recordset });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+router.post("/api/admin/database/clean", requireAdmin, async (req, res) => {
+  const mode = String(req.body.mode || "attempts").toLowerCase();
+  if (!["attempts", "exams", "all"].includes(mode)) {
+    return res.status(400).json({ message: "mode must be attempts, exams, or all" });
+  }
+
+  try {
+    const pool = await getPool();
+    await pool.request().input("mode", mode).execute("sp_CleanDatabase");
+    res.json({ status: "ok", mode });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
 

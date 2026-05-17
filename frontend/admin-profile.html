@@ -58,8 +58,29 @@
           </div>
         </div>
 
+        <div class="card p-3 mb-3">
+          <h6 class="mb-3">All Students</h6>
+          <div class="table-responsive">
+            <table class="table table-striped table-bordered bg-white mb-0">
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Status</th>
+                  <th>Registered</th>
+                </tr>
+              </thead>
+              <tbody id="studentRows"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="card p-3">
-          <h6 class="mb-3">Created Exams</h6>
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 class="mb-0">Created Exams</h6>
+            <a class="btn btn-sm btn-outline-primary" href="admin-manage-exams.html">Manage</a>
+          </div>
           <div class="table-responsive">
             <table class="table table-striped table-bordered bg-white mb-0">
               <thead>
@@ -67,7 +88,7 @@
                   <th>ID</th>
                   <th>Title</th>
                   <th>Subject</th>
-                  <th>Duration</th>
+                  <th>Time Limit</th>
                   <th>Total Marks</th>
                 </tr>
               </thead>
@@ -97,6 +118,7 @@
       const loading = document.getElementById("loading");
       const content = document.getElementById("content");
       const rows = document.getElementById("rows");
+      const studentRows = document.getElementById("studentRows");
 
       function showError(msg) {
         errorBox.textContent = msg;
@@ -113,6 +135,20 @@
           document.getElementById("pendingVal").textContent = stats.pending_students ?? 0;
           document.getElementById("approvedVal").textContent = stats.approved_students ?? 0;
           document.getElementById("totalVal").textContent = stats.total_students ?? 0;
+
+          const students = data.students || [];
+          studentRows.innerHTML = "";
+          students.forEach((s) => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+              <td>${s.student_id}</td>
+              <td>${s.full_name}</td>
+              <td>${s.email}</td>
+              <td>${s.status}</td>
+              <td>${new Date(s.created_at).toLocaleString()}</td>
+            `;
+            studentRows.appendChild(tr);
+          });
 
           rows.innerHTML = "";
           exams.forEach((e) => {

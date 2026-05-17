@@ -4,6 +4,8 @@
   "scripts": {
     "start": "npm --prefix backend start",
     "dev": "npm --prefix backend run dev",
-    "install:backend": "npm --prefix backend install"
+    "install:backend": "npm --prefix backend install",
+    "db:features": "npm --prefix backend run db:features",
+    "db:clean": "npm --prefix backend run db:clean"
   }
 }

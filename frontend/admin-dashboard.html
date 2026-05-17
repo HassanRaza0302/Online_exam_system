@@ -56,6 +56,13 @@
       <div class="row g-3">
         <div class="col-md-6">
           <div class="card p-4 h-100">
+            <h5>Manage Exams</h5>
+            <p class="text-muted small mb-3">Edit time limits, update details, or delete exams.</p>
+            <a class="btn btn-primary" href="admin-manage-exams.html">Open</a>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card p-4 h-100">
             <h5>Create Exam</h5>
             <p class="text-muted small mb-3">Add a new exam (title, duration, marks).</p>
             <a class="btn btn-primary" href="admin-create-exam.html">Open</a>
@@ -81,6 +88,17 @@
             <p class="text-muted small mb-3">See account and analytics details.</p>
             <a class="btn btn-primary" href="admin-profile.html">Open</a>
           </div>
+        </div>
+      </div>
+
+      <div class="card p-4 mt-3">
+        <h5 class="mb-2">Database Maintenance</h5>
+        <p class="text-muted small mb-3">
+          Clean attempt/result data. Use <strong>exams</strong> to also remove all exams and questions.
+        </p>
+        <div class="d-flex flex-wrap gap-2">
+          <button class="btn btn-sm btn-outline-warning" data-clean="attempts">Clean Attempts</button>
+          <button class="btn btn-sm btn-outline-danger" data-clean="exams">Clean Exams + Attempts</button>
         </div>
       </div>
 
@@ -193,6 +211,23 @@
 
       document.getElementById("refreshPendingBtn").addEventListener("click", async () => {
         await Promise.all([loadSummary(), loadPending()]);
+      });
+
+      document.querySelectorAll("button[data-clean]").forEach((btn) => {
+        btn.addEventListener("click", async () => {
+          const mode = btn.getAttribute("data-clean");
+          const label = mode === "exams" ? "exams and all attempts" : "attempts/results only";
+          if (!confirm(`Clean ${label}? Student and admin accounts will be kept.`)) return;
+
+          try {
+            await window.Api.apiPost("/api/admin/database/clean", { mode });
+            await Promise.all([loadSummary(), loadPending()]);
+            errorBox.classList.add("d-none");
+            alert(`Database cleanup completed (${mode}).`);
+          } catch (err) {
+            showError(err.message);
+          }
+        });
       });
 
       Promise.all([loadSummary(), loadPending()]);

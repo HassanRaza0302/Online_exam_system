@@ -139,6 +139,11 @@ Open:
 ### Admin
 - `POST /api/approve-student`
 - `GET /api/admin/students/pending`
+- `GET /api/admin/students`
+- `GET /api/admin/exams`
+- `PUT /api/admin/exams/:examId`
+- `DELETE /api/admin/exams/:examId`
+- `POST /api/admin/database/clean`
 - `POST /api/create-exam` (alias)
 - `POST /api/add-question` (alias)
 - `POST /api/admin/exams`
@@ -161,8 +166,17 @@ Open:
 ## Utility Scripts
 - `npm run db:apply` - apply `database/Project.sql`
 - `npm run db:auth` - apply auth stored procedures
+- `npm run db:features` - apply ranking/delete/cleanup procedures (`database/feature_updates.sql`)
+- `npm run db:clean -- attempts|exams|all` - clean attempt/result data from database
 - `npm run db:hash-passwords` - hash legacy plaintext passwords
 - `npm run stress:exam -- <examId> <users>` - concurrent submission stress simulation
+
+## New Features
+- Admin exam CRUD: create, edit (including time limit), delete (`admin-manage-exams.html`)
+- Admin profile shows full student list
+- Tie ranking: same score gets same rank (`DENSE_RANK` by score)
+- Exam page copy/cut/paste protection during attempts
+- Database cleanup tools (dashboard + `npm run db:clean`)
 
 ## Notes
 - Session store is in-memory for development.

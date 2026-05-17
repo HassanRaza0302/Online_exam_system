@@ -395,10 +395,7 @@ BEGIN
     (
         SELECT
             result_id,
-            DENSE_RANK() OVER
-            (
-                ORDER BY score DESC, submitted_at ASC
-            ) AS ranking
+            DENSE_RANK() OVER (ORDER BY score DESC) AS ranking
         FROM Results
         WHERE exam_id = @exam_id
     )

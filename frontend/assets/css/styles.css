@@ -8,3 +8,15 @@ body {
   box-shadow: 0 8px 24px rgba(18, 38, 63, 0.08);
 }
 
+.exam-secure,
+.exam-secure * {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.exam-secure input[type="radio"],
+.exam-secure label {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
