@@ -3,8 +3,12 @@
   "private": true,
   "scripts": {
     "start": "npm --prefix backend start",
+    "browser": "node scripts/start-with-browser.js",
     "dev": "npm --prefix backend run dev",
     "install:backend": "npm --prefix backend install",
+    "postinstall": "npm --prefix backend install",
+    "db:discover": "npm --prefix backend run db:discover",
+    "db:test": "npm --prefix backend run db:test",
     "db:features": "npm --prefix backend run db:features",
     "db:clean": "npm --prefix backend run db:clean"
   }

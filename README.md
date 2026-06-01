@@ -9,7 +9,7 @@ Production-style semester project for a DBMS-focused online exam platform with:
 
 ## Tech Stack
 - Frontend: HTML, CSS, Bootstrap, JavaScript
-- Backend: Node.js + Express.js
+- Backend: Node.js + Express.js (Node **18–22 LTS** recommended; Node 24 may break optional ODBC drivers)
 - Database: Microsoft SQL Server 2014
 
 ## Architecture
@@ -33,6 +33,9 @@ online-exam-system/
   database/
     Project.sql
     auth_procedures.sql
+  scripts/
+    start-with-browser.js
+  package.json
   README.md
 ```
 
@@ -71,20 +74,39 @@ online-exam-system/
   - `sp_AdminLogin`
   - `sp_LogAuthEvent`
 - Trigger for submission audit logging
-- Ranking tie-breaker:
-  - `score DESC`
-  - `submitted_at ASC`
+- Ranking: same score receives the same rank (`DENSE_RANK` by score)
 - Indexes included in schema
 
 ## Setup and Run
 
-### 1) Install backend dependencies
+### 1) Install dependencies (from project root)
 ```bash
-cd backend
+cd path/to/online-exam-system
 npm install
 ```
 
-### 2) Configure environment
+### 2) Microsoft SQL Server 2014 (default instance)
+
+Node connects over **TCP**. In SSMS you may use `localhost`; the app needs TCP enabled:
+
+1. **SQL Server Configuration Manager** → *Protocols for MSSQLSERVER* → enable **TCP/IP**
+2. TCP/IP → *IPAll* → **TCP Port** = `1433` → **Restart** *SQL Server (MSSQLSERVER)*
+3. `services.msc` → *SQL Server (MSSQLSERVER)* = **Running**
+
+`backend/.env` (default instance — no `\SQLEXPRESS`):
+
+```env
+DB_SERVER=localhost
+DB_PORT=1433
+```
+
+Find your port if different:
+
+```bash
+npm run db:discover
+```
+
+### 3) Configure environment
 Create `.env` from the example:
 ```bash
 copy .env.example .env
@@ -99,24 +121,39 @@ Required keys in `backend/.env`:
 - `DB_USER=...`
 - `DB_PASSWORD=...`
 
-### 3) Apply database schema
+### 4) Apply database schema
 Run `database/Project.sql` in SSMS:
 - Open SSMS
 - New Query
 - Open `database/Project.sql`
 - Execute
 
-### 4) Apply auth procedures + password migration (one-time)
+### 5) Apply auth procedures + password migration (one-time)
 ```bash
 cd backend
 npm run db:auth
 npm run db:hash-passwords
 ```
 
-### 5) Start server
+### 6) Test DB, apply features, start app
+
 ```bash
-cd backend
-npm run start
+npm run db:test
+npm run db:features
+npm run browser
+```
+
+### 7) Start server only (optional)
+From project root:
+
+```bash
+npm run browser
+```
+
+Or start the server only:
+
+```bash
+npm start
 ```
 
 Open:
@@ -164,6 +201,8 @@ Open:
 - `GET /api/profile/admin`
 
 ## Utility Scripts
+- `npm run db:discover` - show installed instances + TCP port (Windows, SQL Server 2014)
+- `npm run db:test` - test database connection
 - `npm run db:apply` - apply `database/Project.sql`
 - `npm run db:auth` - apply auth stored procedures
 - `npm run db:features` - apply ranking/delete/cleanup procedures (`database/feature_updates.sql`)
