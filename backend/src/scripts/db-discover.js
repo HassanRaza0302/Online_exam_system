@@ -41,12 +41,15 @@ console.log("Recommended backend/.env:\n");
 if (allPorts.length) {
   console.log("DB_SERVER=localhost");
   console.log(`DB_PORT=${allPorts[0]}`);
+  console.log("DB_USE_WINDOWS_AUTH=false");
 } else {
   console.log(`DB_SERVER=localhost\\${primary}`);
-  console.log("# Enable TCP/IP in Configuration Manager, then run db:discover again");
+  console.log("DB_USE_WINDOWS_AUTH=true");
+  console.log("# Uses named pipes (no TCP required) via msnodesqlv8");
 }
 console.log("DB_DATABASE=OnlineExamSystem");
+console.log("\n# SQL Server authentication (optional):");
+console.log("# DB_USE_WINDOWS_AUTH=false");
 console.log("DB_USER=sa");
 console.log("DB_PASSWORD=<your password>");
-console.log("\n# If you log into SSMS with Windows Authentication:");
-console.log("# DB_USE_WINDOWS_AUTH=true");
+console.log("\nThen run: npm run db:test");

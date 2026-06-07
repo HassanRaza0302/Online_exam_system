@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const fs = require("fs");
 const path = require("path");
+const bcrypt = require("bcryptjs");
 const { getPool, closeDb } = require("../services/db");
 
 function splitSqlBatchesSafe(scriptText) {
@@ -23,6 +24,32 @@ function splitSqlBatchesSafe(scriptText) {
   if (last) batches.push(last);
 
   return batches;
+}
+
+function isLikelyBcryptHash(value) {
+  return typeof value === "string" && /^\$2[aby]\$\d{2}\$/.test(value);
+}
+
+async function hashPlaintextPasswords(pool) {
+  let updated = 0;
+
+  for (const table of ["Students", "Admins"]) {
+    const idCol = table === "Students" ? "student_id" : "admin_id";
+    const rows = await pool.request().query(`SELECT ${idCol}, password FROM ${table}`);
+
+    for (const row of rows.recordset) {
+      if (isLikelyBcryptHash(row.password)) continue;
+      const passwordHash = await bcrypt.hash(String(row.password), 10);
+      await pool
+        .request()
+        .input("id", row[idCol])
+        .input("password_hash", passwordHash)
+        .query(`UPDATE ${table} SET password = @password_hash WHERE ${idCol} = @id`);
+      updated += 1;
+    }
+  }
+
+  return updated;
 }
 
 async function main() {
@@ -47,6 +74,9 @@ async function main() {
       console.log(`[db:apply] Running batch ${i + 1}/${batches.length}...`);
       await pool.request().batch(batch);
     }
+
+    const hashed = await hashPlaintextPasswords(pool);
+    console.log(`[db:apply] Passwords hashed: ${hashed}`);
     console.log("[db:apply] Done.");
   } finally {
     await closeDb();
@@ -57,4 +87,3 @@ main().catch((err) => {
   console.error("[db:apply] Failed:", err.message);
   process.exit(1);
 });
-

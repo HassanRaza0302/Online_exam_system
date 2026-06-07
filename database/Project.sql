@@ -8,282 +8,291 @@ USE OnlineExamSystem;
 GO
 
 /* =========================
-   STUDENTS TABLE
-========================= */
-
-CREATE TABLE Students (
-    student_id INT PRIMARY KEY IDENTITY(1,1),
-    full_name VARCHAR(100) NOT NULL,
-    email VARCHAR(100) UNIQUE NOT NULL,
-    password VARCHAR(100) NOT NULL,
-    created_at DATETIME DEFAULT GETDATE()
-);
-
-
-/* =========================
    ADMINS TABLE
 ========================= */
 
-CREATE TABLE Admins (
-    admin_id INT PRIMARY KEY IDENTITY(1,1),
-    full_name VARCHAR(100),
-    email VARCHAR(100) UNIQUE,
-    password VARCHAR(100)
-);
+IF OBJECT_ID('Admins', 'U') IS NULL
+BEGIN
+    CREATE TABLE Admins (
+        admin_id INT PRIMARY KEY IDENTITY(1,1),
+        full_name VARCHAR(100),
+        email VARCHAR(100) UNIQUE,
+        password VARCHAR(100),
+        status VARCHAR(20) NOT NULL DEFAULT 'APPROVED'
+            CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED'))
+    );
+END
+GO
 
+/* =========================
+   STUDENTS TABLE
+========================= */
+
+IF OBJECT_ID('Students', 'U') IS NULL
+BEGIN
+    CREATE TABLE Students (
+        student_id INT PRIMARY KEY IDENTITY(1,1),
+        full_name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) UNIQUE NOT NULL,
+        password VARCHAR(100) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'APPROVED'
+            CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
+        approved_by INT NULL,
+        approved_at DATETIME NULL,
+        created_at DATETIME DEFAULT GETDATE(),
+
+        FOREIGN KEY (approved_by) REFERENCES Admins(admin_id)
+    );
+END
+GO
 
 /* =========================
    EXAMS TABLE
 ========================= */
 
-CREATE TABLE Exams (
-    exam_id INT PRIMARY KEY IDENTITY(1,1),
-    exam_title VARCHAR(200) NOT NULL,
-    subject_name VARCHAR(100),
-    duration_minutes INT NOT NULL,
-    total_marks INT,
-    created_by INT,
-    created_at DATETIME DEFAULT GETDATE(),
+IF OBJECT_ID('Exams', 'U') IS NULL
+BEGIN
+    CREATE TABLE Exams (
+        exam_id INT PRIMARY KEY IDENTITY(1,1),
+        exam_title VARCHAR(200) NOT NULL,
+        subject_name VARCHAR(100),
+        duration_minutes INT NOT NULL,
+        total_marks INT,
+        created_by INT,
+        created_at DATETIME DEFAULT GETDATE(),
 
-    FOREIGN KEY (created_by)
-    REFERENCES Admins(admin_id)
-);
-
+        FOREIGN KEY (created_by) REFERENCES Admins(admin_id)
+    );
+END
+GO
 
 /* =========================
    QUESTIONS TABLE
 ========================= */
 
-CREATE TABLE Questions (
-    question_id INT PRIMARY KEY IDENTITY(1,1),
-    exam_id INT NOT NULL,
+IF OBJECT_ID('Questions', 'U') IS NULL
+BEGIN
+    CREATE TABLE Questions (
+        question_id INT PRIMARY KEY IDENTITY(1,1),
+        exam_id INT NOT NULL,
 
-    question_text VARCHAR(1000) NOT NULL,
+        question_text VARCHAR(1000) NOT NULL,
 
-    option_a VARCHAR(300) NOT NULL,
-    option_b VARCHAR(300) NOT NULL,
-    option_c VARCHAR(300) NOT NULL,
-    option_d VARCHAR(300) NOT NULL,
+        option_a VARCHAR(300) NOT NULL,
+        option_b VARCHAR(300) NOT NULL,
+        option_c VARCHAR(300) NOT NULL,
+        option_d VARCHAR(300) NOT NULL,
 
-    correct_option CHAR(1) CHECK (correct_option IN ('A','B','C','D')),
+        correct_option CHAR(1) CHECK (correct_option IN ('A','B','C','D')),
 
-    marks INT DEFAULT 5,
+        marks INT DEFAULT 5,
 
-    FOREIGN KEY (exam_id)
-    REFERENCES Exams(exam_id)
-    ON DELETE CASCADE
-);
-
+        FOREIGN KEY (exam_id)
+        REFERENCES Exams(exam_id)
+        ON DELETE CASCADE
+    );
+END
+GO
 
 /* =========================
    EXAM ATTEMPTS TABLE
 ========================= */
 
-CREATE TABLE ExamAttempts (
-    attempt_id INT PRIMARY KEY IDENTITY(1,1),
+IF OBJECT_ID('ExamAttempts', 'U') IS NULL
+BEGIN
+    CREATE TABLE ExamAttempts (
+        attempt_id INT PRIMARY KEY IDENTITY(1,1),
 
-    student_id INT NOT NULL,
-    exam_id INT NOT NULL,
+        student_id INT NOT NULL,
+        exam_id INT NOT NULL,
 
-    start_time DATETIME DEFAULT GETDATE(),
-    end_time DATETIME NULL,
+        start_time DATETIME DEFAULT GETDATE(),
+        end_time DATETIME NULL,
 
-    status VARCHAR(20) DEFAULT 'IN_PROGRESS'
-    CHECK (status IN ('IN_PROGRESS', 'SUBMITTED')),
+        status VARCHAR(20) DEFAULT 'IN_PROGRESS'
+        CHECK (status IN ('IN_PROGRESS', 'SUBMITTED')),
 
-    FOREIGN KEY (student_id)
-    REFERENCES Students(student_id),
+        FOREIGN KEY (student_id)
+        REFERENCES Students(student_id),
 
-    FOREIGN KEY (exam_id)
-    REFERENCES Exams(exam_id)
-);
-
+        FOREIGN KEY (exam_id)
+        REFERENCES Exams(exam_id)
+    );
+END
+GO
 
 /* =========================
    STUDENT ANSWERS TABLE
 ========================= */
 
-CREATE TABLE StudentAnswers (
-    answer_id INT PRIMARY KEY IDENTITY(1,1),
+IF OBJECT_ID('StudentAnswers', 'U') IS NULL
+BEGIN
+    CREATE TABLE StudentAnswers (
+        answer_id INT PRIMARY KEY IDENTITY(1,1),
 
-    attempt_id INT NOT NULL,
-    question_id INT NOT NULL,
+        attempt_id INT NOT NULL,
+        question_id INT NOT NULL,
 
-    selected_option CHAR(1)
-    CHECK (selected_option IN ('A','B','C','D')),
+        selected_option CHAR(1)
+        CHECK (selected_option IN ('A','B','C','D')),
 
-    FOREIGN KEY (attempt_id)
-    REFERENCES ExamAttempts(attempt_id)
-    ON DELETE CASCADE,
+        FOREIGN KEY (attempt_id)
+        REFERENCES ExamAttempts(attempt_id)
+        ON DELETE CASCADE,
 
-    FOREIGN KEY (question_id)
-    REFERENCES Questions(question_id)
-);
-
+        FOREIGN KEY (question_id)
+        REFERENCES Questions(question_id)
+    );
+END
+GO
 
 /* =========================
    RESULTS TABLE
 ========================= */
 
-CREATE TABLE Results (
-    result_id INT PRIMARY KEY IDENTITY(1,1),
+IF OBJECT_ID('Results', 'U') IS NULL
+BEGIN
+    CREATE TABLE Results (
+        result_id INT PRIMARY KEY IDENTITY(1,1),
 
-    attempt_id INT UNIQUE NOT NULL,
+        attempt_id INT UNIQUE NOT NULL,
 
-    student_id INT NOT NULL,
-    exam_id INT NOT NULL,
+        student_id INT NOT NULL,
+        exam_id INT NOT NULL,
 
-    score INT DEFAULT 0,
+        score INT DEFAULT 0,
 
-    percentage DECIMAL(5,2),
+        percentage DECIMAL(5,2),
 
-    student_rank INT NULL,
+        student_rank INT NULL,
 
-    submitted_at DATETIME DEFAULT GETDATE(),
+        submitted_at DATETIME DEFAULT GETDATE(),
 
-    FOREIGN KEY (attempt_id)
-    REFERENCES ExamAttempts(attempt_id),
+        FOREIGN KEY (attempt_id)
+        REFERENCES ExamAttempts(attempt_id),
 
-    FOREIGN KEY (student_id)
-    REFERENCES Students(student_id),
+        FOREIGN KEY (student_id)
+        REFERENCES Students(student_id),
 
-    FOREIGN KEY (exam_id)
-    REFERENCES Exams(exam_id)
-);
-
+        FOREIGN KEY (exam_id)
+        REFERENCES Exams(exam_id)
+    );
+END
+GO
 
 /* =========================
    AUDIT LOGS TABLE
 ========================= */
 
-CREATE TABLE AuditLogs (
-    log_id INT PRIMARY KEY IDENTITY(1,1),
+IF OBJECT_ID('AuditLogs', 'U') IS NULL
+BEGIN
+    CREATE TABLE AuditLogs (
+        log_id INT PRIMARY KEY IDENTITY(1,1),
 
-    student_id INT,
-    exam_id INT,
+        student_id INT,
+        exam_id INT,
 
-    event_type VARCHAR(100),
+        event_type VARCHAR(100),
 
-    event_description VARCHAR(500),
+        event_description VARCHAR(500),
 
-    log_time DATETIME DEFAULT GETDATE()
-);
-
+        log_time DATETIME DEFAULT GETDATE()
+    );
+END
+GO
 
 /* =========================
    INDEXES FOR PERFORMANCE
 ========================= */
 
-CREATE INDEX idx_student_email
-ON Students(email);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_student_email' AND object_id = OBJECT_ID('Students'))
+    CREATE INDEX idx_student_email ON Students(email);
+GO
 
-CREATE INDEX idx_exam_title
-ON Exams(exam_title);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_students_status' AND object_id = OBJECT_ID('Students'))
+    CREATE INDEX idx_students_status ON Students(status);
+GO
 
-CREATE INDEX idx_question_exam
-ON Questions(exam_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_exam_title' AND object_id = OBJECT_ID('Exams'))
+    CREATE INDEX idx_exam_title ON Exams(exam_title);
+GO
 
-CREATE INDEX idx_attempt_student
-ON ExamAttempts(student_id);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_question_exam' AND object_id = OBJECT_ID('Questions'))
+    CREATE INDEX idx_question_exam ON Questions(exam_id);
+GO
 
-CREATE INDEX idx_result_rank
-ON Results(student_rank);
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_attempt_student' AND object_id = OBJECT_ID('ExamAttempts'))
+    CREATE INDEX idx_attempt_student ON ExamAttempts(student_id);
+GO
 
+IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'idx_result_rank' AND object_id = OBJECT_ID('Results'))
+    CREATE INDEX idx_result_rank ON Results(student_rank);
+GO
 
 /* =========================
    SAMPLE ADMINS
 ========================= */
 
-INSERT INTO Admins(full_name, email, password)
-VALUES
-('Admin User', 'admin@exam.com', 'admin123');
-
+IF NOT EXISTS (SELECT 1 FROM Admins WHERE email = 'admin@exam.com')
+BEGIN
+    INSERT INTO Admins (full_name, email, password, status)
+    VALUES ('Admin User', 'admin@exam.com', 'admin123', 'APPROVED');
+END
+GO
 
 /* =========================
    SAMPLE STUDENTS
 ========================= */
 
-INSERT INTO Students(full_name, email, password)
-VALUES
-('Ali Khan', 'ali@gmail.com', '123'),
-
-('Ahmed Raza', 'ahmed@gmail.com', '123'),
-
-('Sara Noor', 'sara@gmail.com', '123'),
-
-('Fatima Hassan', 'fatima@gmail.com', '123');
-
+IF NOT EXISTS (SELECT 1 FROM Students WHERE email = 'ali@gmail.com')
+BEGIN
+    INSERT INTO Students (full_name, email, password, status)
+    VALUES
+        ('Ali Khan', 'ali@gmail.com', '123', 'APPROVED'),
+        ('Ahmed Raza', 'ahmed@gmail.com', '123', 'APPROVED'),
+        ('Sara Noor', 'sara@gmail.com', '123', 'APPROVED'),
+        ('Fatima Hassan', 'fatima@gmail.com', '123', 'APPROVED');
+END
+GO
 
 /* =========================
    SAMPLE EXAM
 ========================= */
 
-INSERT INTO Exams
-(exam_title, subject_name, duration_minutes, total_marks, created_by)
-VALUES
-('DBMS Midterm Examination', 'Database Systems', 30, 20, 1);
-
+IF NOT EXISTS (SELECT 1 FROM Exams WHERE exam_title = 'DBMS Midterm Examination')
+BEGIN
+    INSERT INTO Exams (exam_title, subject_name, duration_minutes, total_marks, created_by)
+    VALUES ('DBMS Midterm Examination', 'Database Systems', 30, 20, 1);
+END
+GO
 
 /* =========================
    SAMPLE QUESTIONS
 ========================= */
 
-INSERT INTO Questions
-(exam_id, question_text,
-option_a, option_b, option_c, option_d,
-correct_option, marks)
-
-VALUES
-
-(
-1,
-'What does DBMS stand for?',
-'Database Management System',
-'Digital Base Management System',
-'Data Backup Management System',
-'Dynamic Management Base System',
-'A',
-5
-),
-
-(
-1,
-'Which SQL command is used to retrieve data?',
-'INSERT',
-'UPDATE',
-'SELECT',
-'DELETE',
-'C',
-5
-),
-
-(
-1,
-'Which property ensures transaction reliability?',
-'ACID',
-'JOIN',
-'UNION',
-'VIEW',
-'A',
-5
-),
-
-(
-1,
-'Which key uniquely identifies a record?',
-'Foreign Key',
-'Primary Key',
-'Candidate Key',
-'Composite Key',
-'B',
-5
-);
-
+IF NOT EXISTS (SELECT 1 FROM Questions WHERE exam_id = 1)
+BEGIN
+    INSERT INTO Questions
+        (exam_id, question_text, option_a, option_b, option_c, option_d, correct_option, marks)
+    VALUES
+        (1, 'What does DBMS stand for?',
+         'Database Management System', 'Digital Base Management System',
+         'Data Backup Management System', 'Dynamic Management Base System', 'A', 5),
+        (1, 'Which SQL command is used to retrieve data?',
+         'INSERT', 'UPDATE', 'SELECT', 'DELETE', 'C', 5),
+        (1, 'Which property ensures transaction reliability?',
+         'ACID', 'JOIN', 'UNION', 'VIEW', 'A', 5),
+        (1, 'Which key uniquely identifies a record?',
+         'Foreign Key', 'Primary Key', 'Candidate Key', 'Composite Key', 'B', 5);
+END
+GO
 
 /* =========================
    VIEW FOR TOP STUDENTS
 ========================= */
 
+IF OBJECT_ID('vw_TopStudents', 'V') IS NOT NULL
+    DROP VIEW vw_TopStudents;
 GO
 
 CREATE VIEW vw_TopStudents
@@ -295,26 +304,23 @@ SELECT
     r.percentage,
     r.student_rank
 FROM Results r
-JOIN Students s
-ON r.student_id = s.student_id
-JOIN Exams e
-ON r.exam_id = e.exam_id;
-
+JOIN Students s ON r.student_id = s.student_id
+JOIN Exams e ON r.exam_id = e.exam_id;
+GO
 
 /* =========================
-   STORED PROCEDURE:
-   SUBMIT EXAM
+   STORED PROCEDURE: SUBMIT EXAM
 ========================= */
 
+IF OBJECT_ID('sp_SubmitExam', 'P') IS NOT NULL
+    DROP PROCEDURE sp_SubmitExam;
 GO
 
 CREATE PROCEDURE sp_SubmitExam
     @attempt_id INT
 AS
 BEGIN
-
     BEGIN TRY
-
         BEGIN TRANSACTION;
 
         DECLARE @student_id INT;
@@ -322,74 +328,49 @@ BEGIN
         DECLARE @score INT;
         DECLARE @total_marks INT;
 
-        SELECT
-            @student_id = student_id,
-            @exam_id = exam_id
+        SELECT @student_id = student_id, @exam_id = exam_id
         FROM ExamAttempts
         WHERE attempt_id = @attempt_id;
 
-        SELECT
-            @score = ISNULL(SUM(q.marks),0)
+        SELECT @score = ISNULL(SUM(q.marks), 0)
         FROM StudentAnswers sa
-        JOIN Questions q
-        ON sa.question_id = q.question_id
+        JOIN Questions q ON sa.question_id = q.question_id
         WHERE sa.attempt_id = @attempt_id
-        AND sa.selected_option = q.correct_option;
+          AND sa.selected_option = q.correct_option;
 
-        SELECT
-            @total_marks = total_marks
+        SELECT @total_marks = total_marks
         FROM Exams
         WHERE exam_id = @exam_id;
 
-        INSERT INTO Results
-        (
-            attempt_id,
-            student_id,
-            exam_id,
-            score,
-            percentage
-        )
-        VALUES
-        (
-            @attempt_id,
-            @student_id,
-            @exam_id,
-            @score,
-            (@score * 100.0 / @total_marks)
-        );
+        INSERT INTO Results (attempt_id, student_id, exam_id, score, percentage)
+        VALUES (@attempt_id, @student_id, @exam_id, @score, (@score * 100.0 / @total_marks));
 
         UPDATE ExamAttempts
-        SET
-            status = 'SUBMITTED',
-            end_time = GETDATE()
+        SET status = 'SUBMITTED', end_time = GETDATE()
         WHERE attempt_id = @attempt_id;
 
         COMMIT TRANSACTION;
-
     END TRY
-
     BEGIN CATCH
-
-        ROLLBACK TRANSACTION;
-
-        PRINT 'Transaction Failed';
-
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
     END CATCH
-
 END;
-
 GO
 
-
 /* =========================
-   STORED PROCEDURE:
-   GENERATE RANKINGS
+   STORED PROCEDURE: GENERATE RANKINGS
 ========================= */
+
+IF OBJECT_ID('sp_GenerateRankings', 'P') IS NOT NULL
+    DROP PROCEDURE sp_GenerateRankings;
+GO
 
 CREATE PROCEDURE sp_GenerateRankings
     @exam_id INT
 AS
 BEGIN
+    SET NOCOUNT ON;
 
     WITH RankedStudents AS
     (
@@ -399,44 +380,188 @@ BEGIN
         FROM Results
         WHERE exam_id = @exam_id
     )
-
-    UPDATE Results
-    SET student_rank = RankedStudents.ranking
-    FROM Results
-    JOIN RankedStudents
-    ON Results.result_id = RankedStudents.result_id;
-
+    UPDATE r
+    SET student_rank = rs.ranking
+    FROM Results r
+    INNER JOIN RankedStudents rs ON r.result_id = rs.result_id;
 END;
-
 GO
 
+/* =========================
+   STORED PROCEDURE: DELETE EXAM
+========================= */
+
+IF OBJECT_ID('sp_DeleteExam', 'P') IS NOT NULL
+    DROP PROCEDURE sp_DeleteExam;
+GO
+
+CREATE PROCEDURE sp_DeleteExam
+    @exam_id INT,
+    @admin_id INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF NOT EXISTS (SELECT 1 FROM Exams WHERE exam_id = @exam_id)
+    BEGIN
+        RAISERROR('Exam not found', 16, 1);
+        RETURN;
+    END
+
+    IF @admin_id IS NOT NULL
+       AND NOT EXISTS (SELECT 1 FROM Exams WHERE exam_id = @exam_id AND created_by = @admin_id)
+    BEGIN
+        RAISERROR('You can only delete exams you created', 16, 1);
+        RETURN;
+    END
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        DELETE sa
+        FROM StudentAnswers sa
+        INNER JOIN ExamAttempts ea ON ea.attempt_id = sa.attempt_id
+        WHERE ea.exam_id = @exam_id;
+
+        DELETE FROM Results WHERE exam_id = @exam_id;
+        DELETE FROM AuditLogs WHERE exam_id = @exam_id;
+        DELETE FROM ExamAttempts WHERE exam_id = @exam_id;
+        DELETE FROM Questions WHERE exam_id = @exam_id;
+        DELETE FROM Exams WHERE exam_id = @exam_id;
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
 
 /* =========================
-   TRIGGER:
-   AUDIT LOG AFTER SUBMISSION
+   STORED PROCEDURE: CLEAN DATABASE
 ========================= */
+
+IF OBJECT_ID('sp_CleanDatabase', 'P') IS NOT NULL
+    DROP PROCEDURE sp_CleanDatabase;
+GO
+
+CREATE PROCEDURE sp_CleanDatabase
+    @mode VARCHAR(20) = 'attempts'
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    IF @mode NOT IN ('attempts', 'exams', 'all')
+    BEGIN
+        RAISERROR('mode must be attempts, exams, or all', 16, 1);
+        RETURN;
+    END
+
+    BEGIN TRY
+        BEGIN TRANSACTION;
+
+        DELETE FROM StudentAnswers;
+        DELETE FROM Results;
+        DELETE FROM AuditLogs;
+        DELETE FROM ExamAttempts;
+
+        IF @mode IN ('exams', 'all')
+        BEGIN
+            DELETE FROM Questions;
+            DELETE FROM Exams;
+        END
+
+        COMMIT TRANSACTION;
+    END TRY
+    BEGIN CATCH
+        IF @@TRANCOUNT > 0 ROLLBACK TRANSACTION;
+        THROW;
+    END CATCH
+END;
+GO
+
+/* =========================
+   STORED PROCEDURE: STUDENT LOGIN
+========================= */
+
+IF OBJECT_ID('sp_StudentLogin', 'P') IS NOT NULL
+    DROP PROCEDURE sp_StudentLogin;
+GO
+
+CREATE PROCEDURE sp_StudentLogin
+    @email VARCHAR(100),
+    @password_hash VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP 1 student_id, full_name, email
+    FROM Students
+    WHERE email = @email
+      AND password = @password_hash;
+END;
+GO
+
+/* =========================
+   STORED PROCEDURE: ADMIN LOGIN
+========================= */
+
+IF OBJECT_ID('sp_AdminLogin', 'P') IS NOT NULL
+    DROP PROCEDURE sp_AdminLogin;
+GO
+
+CREATE PROCEDURE sp_AdminLogin
+    @email VARCHAR(100),
+    @password_hash VARCHAR(100)
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    SELECT TOP 1 admin_id, full_name, email
+    FROM Admins
+    WHERE email = @email
+      AND password = @password_hash;
+END;
+GO
+
+/* =========================
+   STORED PROCEDURE: LOG AUTH EVENT
+========================= */
+
+IF OBJECT_ID('sp_LogAuthEvent', 'P') IS NOT NULL
+    DROP PROCEDURE sp_LogAuthEvent;
+GO
+
+CREATE PROCEDURE sp_LogAuthEvent
+    @event_type VARCHAR(100),
+    @event_description VARCHAR(500),
+    @student_id INT = NULL,
+    @exam_id INT = NULL
+AS
+BEGIN
+    SET NOCOUNT ON;
+
+    INSERT INTO AuditLogs (student_id, exam_id, event_type, event_description)
+    VALUES (@student_id, @exam_id, @event_type, @event_description);
+END;
+GO
+
+/* =========================
+   TRIGGER: AUDIT LOG AFTER SUBMISSION
+========================= */
+
+IF OBJECT_ID('trg_AuditExamSubmission', 'TR') IS NOT NULL
+    DROP TRIGGER trg_AuditExamSubmission;
+GO
 
 CREATE TRIGGER trg_AuditExamSubmission
 ON Results
 AFTER INSERT
 AS
 BEGIN
-
-    INSERT INTO AuditLogs
-    (
-        student_id,
-        exam_id,
-        event_type,
-        event_description
-    )
-
-    SELECT
-        student_id,
-        exam_id,
-        'EXAM_SUBMITTED',
-        'Student submitted exam successfully'
+    INSERT INTO AuditLogs (student_id, exam_id, event_type, event_description)
+    SELECT student_id, exam_id, 'EXAM_SUBMITTED', 'Student submitted exam successfully'
     FROM inserted;
-
 END;
-
 GO

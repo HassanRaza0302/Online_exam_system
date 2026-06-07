@@ -5,11 +5,15 @@
     "start": "npm --prefix backend start",
     "browser": "node scripts/start-with-browser.js",
     "dev": "npm --prefix backend run dev",
+    "setup": "powershell -ExecutionPolicy Bypass -File scripts/setup-windows.ps1",
+    "setup:run": "powershell -ExecutionPolicy Bypass -File scripts/run-setup.ps1",
     "install:backend": "npm --prefix backend install",
     "postinstall": "npm --prefix backend install",
     "db:discover": "npm --prefix backend run db:discover",
     "db:test": "npm --prefix backend run db:test",
-    "db:features": "npm --prefix backend run db:features",
     "db:clean": "npm --prefix backend run db:clean"
+  },
+  "dependencies": {
+    "msnodesqlv8": "^5.2.0"
   }
 }

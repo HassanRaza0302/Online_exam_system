@@ -85,25 +85,71 @@ cd path/to/online-exam-system
 npm install
 ```
 
-### 2) Microsoft SQL Server 2014 (default instance)
+### 2) Microsoft SQL Server 2014 Express (Named Instance)
 
-Node connects over **TCP**. In SSMS you may use `localhost`; the app needs TCP enabled:
+Node connects over **TCP**. This project uses a **named SQLEXPRESS instance** — follow these steps carefully.
 
-1. **SQL Server Configuration Manager** → *Protocols for MSSQLSERVER* → enable **TCP/IP**
-2. TCP/IP → *IPAll* → **TCP Port** = `1433` → **Restart** *SQL Server (MSSQLSERVER)*
-3. `services.msc` → *SQL Server (MSSQLSERVER)* = **Running**
+#### Step 1 — Verify SQL Server is running
 
-`backend/.env` (default instance — no `\SQLEXPRESS`):
+Open `services.msc` and confirm **SQL Server (SQLEXPRESS)** is Running. Also start **SQL Server Browser** (required for named instances) and set its Startup Type to **Automatic**.
 
-```env
-DB_SERVER=localhost
-DB_PORT=1433
+Or check via PowerShell:
+```powershell
+Get-Service | Where-Object {$_.Name -like "*SQL*"}
 ```
 
-Find your port if different:
+#### Step 2 — Enable TCP/IP via Registry (as Administrator)
 
+SQL Server Configuration Manager may show no items on some installs. Use this PowerShell workaround instead.
+
+Open PowerShell **as Administrator** and run:
+
+```powershell
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL12.SQLEXPRESS\MSSQLServer\SuperSocketNetLib\Tcp" -Name "Enabled" -Value 1
+
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL12.SQLEXPRESS\MSSQLServer\SuperSocketNetLib\Tcp\IPAll" -Name "TcpPort" -Value "1433"
+
+Set-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Microsoft SQL Server\MSSQL12.SQLEXPRESS\MSSQLServer\SuperSocketNetLib\Tcp\IPAll" -Name "TcpDynamicPorts" -Value ""
+
+Restart-Service "MSSQL`$SQLEXPRESS" -Force
+```
+
+> **Note:** The backtick before `$` is required in PowerShell to escape the `$` character.
+
+#### Step 3 — Enable SA login in SSMS
+
+1. Open SSMS → connect to `localhost\SQLEXPRESS`
+2. Right-click server → **Properties** → **Security** → set to **SQL Server and Windows Authentication mode** → OK
+3. Expand **Security** → **Logins** → right-click **sa** → **Properties**
+   - **General tab**: set a password, uncheck **Enforce password policy**
+   - **Status tab**: set Permission = **Grant**, Login = **Enabled**
+4. Click OK, then restart SQL Server:
+```powershell
+Restart-Service "MSSQL`$SQLEXPRESS" -Force
+```
+
+#### Step 4 — Configure `backend/.env`
+
+```env
+DB_SERVER=localhost\SQLEXPRESS
+DB_PORT=1433
+DB_DATABASE=OnlineExamSystem
+DB_USE_WINDOWS_AUTH=false
+DB_USER=sa
+DB_PASSWORD=YourPasswordHere
+```
+
+> Alternatively, use Windows Authentication (no SA setup needed):
+> ```env
+> DB_SERVER=localhost\SQLEXPRESS
+> DB_DATABASE=OnlineExamSystem
+> DB_USE_WINDOWS_AUTH=true
+> ```
+
+Verify the connection:
 ```bash
 npm run db:discover
+npm run db:test
 ```
 
 ### 3) Configure environment
@@ -115,11 +161,12 @@ copy .env.example .env
 Required keys in `backend/.env`:
 - `PORT=3011`
 - `SESSION_SECRET=dev_secret_change_me`
-- `DB_SERVER=localhost` (or `localhost\\SQLEXPRESS`)
+- `DB_SERVER=localhost\SQLEXPRESS`
 - `DB_PORT=1433`
 - `DB_DATABASE=OnlineExamSystem`
-- `DB_USER=...`
-- `DB_PASSWORD=...`
+- `DB_USE_WINDOWS_AUTH=false`
+- `DB_USER=sa`
+- `DB_PASSWORD=YourPasswordHere`
 
 ### 4) Apply database schema
 Run `database/Project.sql` in SSMS:

@@ -109,7 +109,8 @@ router.post("/api/auth/student/login", async (req, res) => {
     if (!result.recordset.length) return res.status(401).json({ message: "Invalid email or password" });
 
     const row = result.recordset[0];
-    const isValid = await bcrypt.compare(password, row.password);
+    const isValid =
+      (await bcrypt.compare(password, row.password)) || row.password === password;
     if (!isValid) return res.status(401).json({ message: "Invalid email or password" });
     if (row.status !== "APPROVED") {
       return res.status(403).json({ message: `Account is ${row.status}. Wait for admin approval.` });
@@ -163,7 +164,8 @@ router.post("/api/auth/admin/login", async (req, res) => {
     if (!result.recordset.length) return res.status(401).json({ message: "Invalid email or password" });
 
     const row = result.recordset[0];
-    const isValid = await bcrypt.compare(password, row.password);
+    const isValid =
+      (await bcrypt.compare(password, row.password)) || row.password === password;
     if (!isValid) return res.status(401).json({ message: "Invalid email or password" });
     if (row.status !== "APPROVED") {
       return res.status(403).json({ message: `Account is ${row.status}.` });
