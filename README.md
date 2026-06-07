@@ -32,7 +32,6 @@ online-exam-system/
       js/
   database/
     Project.sql
-    auth_procedures.sql
   scripts/
     start-with-browser.js
   package.json
