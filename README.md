@@ -268,3 +268,13 @@ Open:
 - For deployment, use a persistent session store and HTTPS-secure cookies.
 - Password hashes are stored in existing `password` columns for compatibility with current schema.
 
+## License
+
+This project is provided for academic and educational use only.
+
+- **Permission:** Use, copy, modify, and distribute the software for non-commercial educational purposes (teaching, coursework, research) is allowed.
+- **Prohibited:** Commercial use, sale, redistribution for commercial purposes, relicensing, or any other commercial exploitation is prohibited without prior written permission from the project owner.
+- **No Warranty:** THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY.
+
+If you need a commercial license or other permissions, contact the project owner.
+
